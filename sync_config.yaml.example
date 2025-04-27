@@ -1,0 +1,34 @@
+---
+
+remote_url: git@github.com:yourusername/config-sync-repo.git
+
+device_name: "mac mini m4"
+
+device_vars:
+  HOME: /Users/uu
+  CURSOR_PATH: "/Users/uu/Library/Application Support/Cursor"
+  WINDSURF_PATH: "/Users/uu/Library/Application Support/Windsurf"
+
+sync_rules:
+  cursor_settings:
+    source_path: "{CURSOR_PATH}/User/settings.json"
+    remote_template_path: cursor/settings.json
+    content_vars:
+      - HOME
+  windsurf_settings:
+    source_path: "{WINDSURF_PATH}/User/settings.json"
+    remote_template_path: windsurf/settings.json
+    content_vars:
+      - HOME
+  windsurf_keybindings:
+    source_path: "{WINDSURF_PATH}/User/keybindings.json"
+    remote_template_path: windsurf/keybindings.json
+    content_vars:
+      - HOME
+  windsurf_extensions:
+    source_path: "{HOME}/.windsurf/extensions/extensions.json"
+    remote_template_path: windsurf/extensions.json
+    content_vars:
+      - HOME
+
+...
