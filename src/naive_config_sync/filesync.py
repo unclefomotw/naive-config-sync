@@ -1,6 +1,8 @@
 import logging
 import os
 import subprocess
+import sys
+from difflib import unified_diff
 from pathlib import Path
 
 import yaml
@@ -204,6 +206,10 @@ class FileSync:
                 self.logger.info(f"Updated local file for {rule_name}")
             else:
                 self.logger.info(f"Would update local file for {rule_name}")
+                sys.stdout.writelines(unified_diff(
+                    source_content.splitlines(keepends=True), repo_content.splitlines(keepends=True),
+                    fromfile=str(source_path), tofile=str(local_sync_path)
+                ))
 
     def status(self, rule_names_to_run: list[str] | None = None):
         """
