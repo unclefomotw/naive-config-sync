@@ -120,8 +120,17 @@ class FileSync:
         Push local config files to the repository.
         """
 
-        for rule_name in self._get_rules_to_run(rule_names_to_run):
+        # Get the rules to run and convert source files to repo templates
+        rules_to_run = self._get_rules_to_run(rule_names_to_run)
+        for rule_name in rules_to_run:
             self._convert_source_to_repo_template(rule_name)
+
+        # Get paths of files that correspond to the rules we're running
+        rule_file_paths = []
+        for rule_name, rule in rules_to_run.items():
+            repo_path = self.local_repo_root / rule.remote_template_path
+            if repo_path.exists():
+                rule_file_paths.append(str(repo_path.relative_to(self.local_repo_root)))
 
         # get files that would've been changed if added, including untracked files and files not staged for commit
         changed_files = []
@@ -133,26 +142,32 @@ class FileSync:
                 # Untracked files start with '??', unstaged modified files start with ' M'
                 if line.startswith('??') or line.startswith(' M') or line.startswith('AM'):
                     # The filename comes after the status
-                    changed_files.append(line[3:].strip())
+                    file_path = line[3:].strip()
+                    # Only include files that correspond to the rules we're running
+                    if file_path in rule_file_paths:
+                        changed_files.append(file_path)
         except subprocess.CalledProcessError as e:
             self.logger.error(f"Failed to get git status: {e.stderr}")
 
         if changed_files:
-            self.logger.info("Changed/untracked files:")
+            self.logger.info("Changed/untracked files for selected rules:")
             for f in changed_files:
                 self.logger.info(f"  {f}")
         else:
-            self.logger.info("No changed or untracked files detected.")
+            self.logger.info("No changed or untracked files detected for selected rules.")
 
 
         # Commit and push if remote is set
-        if not dry_run:
-            subprocess.run(['git', 'add', '.'], cwd=self.local_repo_root, check=True)
+        if not dry_run and changed_files:
+            for f in changed_files:
+                subprocess.run(['git', 'add', f], cwd=self.local_repo_root, check=True)
             subprocess.run(
                 ['git', 'commit', '-m', f'Sync configs from {self.device_name}'],
                 cwd=self.local_repo_root, check=True)
             subprocess.run(['git', 'push', 'origin', 'main'], cwd=self.local_repo_root, check=True)
             self.logger.info("Pushed changes to repository")
+        elif not dry_run:
+            self.logger.info("No changes to commit and push")
 
     def pull(self, dry_run: bool = False, rule_names_to_run: list[str] | None = None):
         """
